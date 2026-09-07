@@ -35,3 +35,4 @@ class UserSeries(Base):
     user_id = Column(Integer, ForeignKey("User.id"))
     series_id = Column(Integer, ForeignKey("series.id"))
     current_book = Column(Integer)
+    notes = Column(String)
