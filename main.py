@@ -1,0 +1,83 @@
+from fastapi import FastAPI
+from database import SessionLocal
+from models import Series
+from pydantic import BaseModel
+from models import User
+from models import UserSeries
+
+
+class SeriesCreate(BaseModel):
+
+
+    name: str
+    author: str
+
+app = FastAPI()
+
+@app.post("/series")
+
+def create_series(series: SeriesCreate):
+    db = SessionLocal()
+    new_series = Series(name = series.name, author = series.author, status = "ongoing")
+    db.add(new_series)
+    db.commit()
+    return {"massage": "Series created", "id": new_series.id}
+
+
+
+@app.get("/series")
+
+def get_series():
+
+    db = SessionLocal()
+    all_series = db.query(Series).all()
+    
+    return all_series
+
+
+class UserCreate(BaseModel):
+    email: str
+
+@app.post("/user")
+def create_user(users: UserCreate):
+    db = SessionLocal()
+    new_user = User(email = users.email)
+    db.add(new_user)
+    db.commit()
+    return {"massage": "User Created", "id": new_user.id}
+
+
+
+@app.get("/user")
+
+def get_user():
+    db = SessionLocal()
+    all_users = db.query(User).all()
+
+    return all_users
+
+     
+
+
+class FollowRequest(BaseModel):
+    user_id: int
+    series_id: int
+    current_book: int
+
+
+@app.post("/follow")
+def follow_series(request: FollowRequest):
+    db = SessionLocal()
+    new_link = UserSeries(user_id=request.user_id, series_id=request.series_id, current_book=request.current_book)
+    db.add(new_link)
+    db.commit()
+    return {"message": "Now following series", "id": new_link.id}
+
+
+@app.get("/follow")
+
+def get_follow_series():
+    db = SessionLocal()
+    all_follow_request = db.query(UserSeries).all()
+
+    return all_follow_request
