@@ -81,3 +81,32 @@ def get_follow_series():
     all_follow_request = db.query(UserSeries).all()
 
     return all_follow_request
+
+
+
+class UpdateProgressRequest(BaseModel):
+    current_book: int
+    notes: str
+
+
+
+@app.put("/follow/{link_id}")
+
+def update_follow(link_id: int, request: UpdateProgressRequest):
+    db = SessionLocal()
+    link = db.query(UserSeries).filter(UserSeries.id == link_id).first()
+    link.current_book = request.current_book
+    link.notes = request.notes
+    db.commit()
+    return {"message": "Progress updated", "current_book": link.current_book, "notes": link.notes}
+    
+
+
+
+@app.get("/follow/{user_id}")
+
+
+def see_follow(user_id: int,):
+    db = SessionLocal()
+    follow_request = db.query(UserSeries).filter(UserSeries.user_id == user_id).all()
+    return follow_request
