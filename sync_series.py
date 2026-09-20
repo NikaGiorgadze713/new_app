@@ -1,3 +1,9 @@
+
+from hardcover_service import get_series_books
+
+
+
+
 def clean_book_list(raw_books):
     junk_words = ["Boxed", "Collection", "Trilogy", "Saga", "Box Set"]
     cleaned = []
@@ -8,18 +14,69 @@ def clean_book_list(raw_books):
         for word in junk_words:
             if word in title:
                 is_junk = True
-        if not is_junk:
+        if not is_junk and entry["position"] is not None:
             cleaned.append(entry)
     return cleaned
 
 
 
 
-from hardcover_service import get_series_books
+
+
+
+
+
+def remove_duplicate_positions(cleaned_list):
+    seen_positions = []
+    final_list = []
+
+    for entry in cleaned_list:
+        position = entry["position"]
+        if position not in seen_positions:
+            seen_positions.append(position)
+            final_list.append(entry)
+    return final_list
+
+
+
+
+
+from database import SessionLocal
+from models import Series, BookRelease
+
+def save_series_to_db(series_name, cleaned_books):
+    db = SessionLocal()
+
+    new_series = Series(name=series_name, author="Brandon Sanderson", status="ongoing")
+    db.add(new_series)
+    db.commit()
+    db.refresh(new_series)
+
+    print("Created series with id:", new_series.id)
+    for entry in cleaned_books:
+        new_book = BookRelease(
+            series_id=new_series.id,
+            book_number=entry["position"],
+            title=entry["book"]["title"]
+        )
+        db.add(new_book)
+
+    db.commit()
+    print("Saved", len(cleaned_books), "books")
+
+
+
+
+
+
+
 
 if __name__ == "__main__":
     result = get_series_books(5452)
     raw_list = result["data"]["series_by_pk"]["book_series"]
     cleaned = clean_book_list(raw_list)
-    for item in cleaned:
-        print(item["position"], "-", item["book"]["title"])
+    final = remove_duplicate_positions(cleaned)
+    save_series_to_db("The Mistborn Saga", final)
+
+
+

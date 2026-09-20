@@ -110,3 +110,18 @@ def see_follow(user_id: int,):
     db = SessionLocal()
     follow_request = db.query(UserSeries).filter(UserSeries.user_id == user_id).all()
     return follow_request
+
+
+
+
+from sync_series import save_series_to_db, clean_book_list, remove_duplicate_positions
+from hardcover_service import get_series_books
+
+@app.post("/series/import/{hardcover_id}")
+def import_series(hardcover_id: int, name: str):
+    result = get_series_books(hardcover_id)
+    raw_list = result["data"]["series_by_pk"]["book_series"]
+    cleaned = clean_book_list(raw_list)
+    final = remove_duplicate_positions(cleaned)
+    save_series_to_db(name, final)
+    return {"message": "Series imported", "books_added": len(final)}
