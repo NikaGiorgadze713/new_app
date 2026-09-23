@@ -36,3 +36,4 @@ class UserSeries(Base):
     series_id = Column(Integer, ForeignKey("series.id"))
     current_book = Column(Integer)
     notes = Column(String)
+    last_notified_book = Column(Integer, default=0)
