@@ -1,6 +1,8 @@
 from database import SessionLocal
 from models import  UserSeries
 from models import BookRelease
+from models import User
+from email_service import send_email
 
 
 db = SessionLocal()
@@ -13,7 +15,8 @@ for link in all_rows:
         continue
 
     if latest_book.book_number > (link.last_notified_book or 0) and latest_book.book_number > (link.current_book or 0):
-        print("Notify user", link.user_id, "about", latest_book.title)
+        user = db.query(User).filter(User.id == link.user_id).first()
+        send_email( user.email, "New book in your series!", f"Good news! {latest_book.title} (book {latest_book.book_number}) is out.")
         link.last_notified_book = latest_book.book_number
 
 db.commit()
