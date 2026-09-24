@@ -119,12 +119,12 @@ from sync_series import save_series_to_db, clean_book_list, remove_duplicate_pos
 from hardcover_service import get_series_books
 
 @app.post("/series/import/{hardcover_id}")
-def import_series(hardcover_id: int, name: str):
+def import_series(hardcover_id: int, name: str, author: str):
     result = get_series_books(hardcover_id)
     raw_list = result["data"]["series_by_pk"]["book_series"]
     cleaned = clean_book_list(raw_list)
     final = remove_duplicate_positions(cleaned)
-    save_series_to_db(name, final)
+    save_series_to_db(name, author, final, hardcover_id)
     return {"message": "Series imported", "books_added": len(final)}
 
 

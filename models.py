@@ -12,6 +12,7 @@ class Series(Base):
     name = Column(String)
     author = Column(String)
     status = Column(String)
+    hardcover_id = Column(Integer)
 
 
 class BookRelease(Base):
