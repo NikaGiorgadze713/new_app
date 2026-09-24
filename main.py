@@ -115,7 +115,7 @@ def see_follow(user_id: int,):
 
 
 
-from sync_series import save_series_to_db, clean_book_list, remove_duplicate_positions
+from sync_series import save_series_to_db, clean_book_list, remove_duplicate_positions, refresh_series
 from hardcover_service import get_series_books
 
 @app.post("/series/import/{hardcover_id}")
@@ -132,3 +132,9 @@ def import_series(hardcover_id: int, name: str, author: str):
 def check_notifications():
     sent = run_notification_check()
     return{"message": "Notification check complete", "emails_sent": sent}
+
+
+@app.post("/series/{series_id}/refresh")
+def refresh_series_endpoint(series_id: int):
+    added = refresh_series(series_id)
+    return {"message": "Series refreshed", "books_added": added}
