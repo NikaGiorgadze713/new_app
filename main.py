@@ -4,6 +4,7 @@ from models import Series
 from pydantic import BaseModel
 from models import User
 from models import UserSeries
+from check_notifications import run_notification_check
 
 
 class SeriesCreate(BaseModel):
@@ -125,3 +126,9 @@ def import_series(hardcover_id: int, name: str):
     final = remove_duplicate_positions(cleaned)
     save_series_to_db(name, final)
     return {"message": "Series imported", "books_added": len(final)}
+
+
+@app.post("/notifications/check")
+def check_notifications():
+    sent = run_notification_check()
+    return{"message": "Notification check complete", "emails_sent": sent}
