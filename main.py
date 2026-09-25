@@ -69,10 +69,14 @@ class FollowRequest(BaseModel):
 @app.post("/follow")
 def follow_series(request: FollowRequest):
     db = SessionLocal()
-    new_link = UserSeries(user_id=request.user_id, series_id=request.series_id, current_book=request.current_book)
-    db.add(new_link)
-    db.commit()
-    return {"message": "Now following series", "id": new_link.id}
+    existing = db.query(UserSeries).filter(UserSeries.user_id == request.user_id, UserSeries.series_id == request.series_id,).first()
+    if existing is not None:
+        return {"message": "Already following this series"}
+    else:
+        new_link = UserSeries(user_id=request.user_id, series_id=request.series_id, current_book=request.current_book)
+        db.add(new_link)
+        db.commit()
+        return {"message": "Now following series", "id": new_link.id}
 
 
 @app.get("/follow")
