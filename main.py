@@ -5,6 +5,8 @@ from pydantic import BaseModel
 from models import User
 from models import UserSeries
 from check_notifications import run_notification_check
+from fastapi.responses import FileResponse
+
 
 
 class SeriesCreate(BaseModel):
@@ -142,3 +144,10 @@ def check_notifications():
 def refresh_series_endpoint(series_id: int):
     added = refresh_series(series_id)
     return {"message": "Series refreshed", "books_added": added}
+
+
+
+
+@app.get("/")
+def home():
+    return FileResponse("static/index.html")
