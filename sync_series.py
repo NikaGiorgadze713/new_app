@@ -4,7 +4,7 @@ from hardcover_service import get_series_books
 
 
 def clean_book_list(raw_books):
-    junk_words = ["Boxed", "Collection", "Trilogy", "Saga", "Box Set"]
+    junk_words = ["Boxed", "Collection", "Trilogy", "Saga", "Box Set", "Series"]
     cleaned = []
 
     for entry in raw_books:

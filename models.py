@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, Float
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 
@@ -19,9 +19,9 @@ class BookRelease(Base):
     __tablename__ = "BookRelease"
     id = Column(Integer, primary_key=True)
     series_id = Column(Integer, ForeignKey("series.id"))
-    book_number = Column(Integer)
+    book_number = Column(Float)
     title = Column(String)
-    relase_date = Column(Integer)
+    release_date = Column(Integer)
 
 
 class User(Base):
