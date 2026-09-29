@@ -51,6 +51,7 @@ def save_series_to_db(series_name, author, cleaned_books, hardcover_id):
 
     db.commit()
     print("Saved", len(cleaned_books), "books")
+    return new_series
 
 def refresh_series(series_id):
     db = SessionLocal()

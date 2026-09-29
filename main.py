@@ -9,6 +9,7 @@ from models import User
 from models import UserSeries
 from check_notifications import run_notification_check
 from fastapi.responses import FileResponse
+from models import BookRelease
 
 
 class SeriesCreate(BaseModel):
@@ -151,3 +152,91 @@ def search(name: str):
         clean.append({"hardcover_id": int(doc["id"]), "name": doc["name"], "author": doc.get(
             "author_name"), "readers": doc.get("readers_count", 0)})
     return clean
+
+
+
+
+
+class FollowFromSearchRequest(BaseModel):
+    user_id: int
+    hardcover_id: int
+    name: str
+    author: str
+    current_book: int
+
+
+class LoginRequest(BaseModel):
+    email: str
+
+
+@app.post("/follow/from-search")
+def follow_from_search(request: FollowFromSearchRequest):
+    db = SessionLocal()
+
+    series = db.query(Series).filter(Series.hardcover_id == request.hardcover_id).first()
+
+    if series is None:
+        result = get_series_books(request.hardcover_id)
+        raw_list = result["data"]["series_by_pk"]["book_series"]
+        cleaned = clean_book_list(raw_list)
+        final = remove_duplicate_positions(cleaned)
+        series = save_series_to_db(request.name, request.author, final, request.hardcover_id)
+
+    existing = db.query(UserSeries).filter(
+        UserSeries.user_id == request.user_id,
+        UserSeries.series_id == series.id,
+    ).first()
+
+    if existing is not None:
+        return {"message": "Already following this series"}
+
+    new_link = UserSeries(
+        user_id=request.user_id,
+        series_id=series.id,
+        current_book=request.current_book,
+    )
+    db.add(new_link)
+    db.commit()
+    return {"message": "Now following series", "series_id": series.id}
+
+
+@app.get("/my-series/{user_id}")
+def my_series(user_id: int):
+    db = SessionLocal()
+    links = db.query(UserSeries).filter(UserSeries.user_id == user_id).all()
+
+    result = []
+    for link in links:
+        series = db.query(Series).filter(Series.id == link.series_id).first()
+        latest_book = (
+            db.query(BookRelease)
+            .filter(BookRelease.series_id == link.series_id)
+            .order_by(BookRelease.book_number.desc())
+            .first()
+        )
+
+        result.append({
+            "link_id": link.id,
+            "series_name": series.name,
+            "author": series.author,
+            "current_book": link.current_book,
+            "notes": link.notes,
+            "latest_book_number": latest_book.book_number if latest_book else None,
+            "latest_book_title": latest_book.title if latest_book else None,
+        })
+
+    return result
+
+
+@app.post("/login")
+def login(request: LoginRequest):
+    db = SessionLocal()
+    user = db.query(User).filter(User.email == request.email).first()
+
+    if user is None:
+        user = User(email=request.email)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    return {"user_id": user.id, "email": user.email}
