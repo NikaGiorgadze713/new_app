@@ -22,6 +22,7 @@ class BookRelease(Base):
     book_number = Column(Float)
     title = Column(String)
     release_date = Column(Integer)
+    cover_url = Column(String)
 
 
 class User(Base):
@@ -35,6 +36,6 @@ class UserSeries(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("User.id"))
     series_id = Column(Integer, ForeignKey("series.id"))
-    current_book = Column(Integer)
+    current_book = Column(Float)
     notes = Column(String)
     last_notified_book = Column(Integer, default=0)

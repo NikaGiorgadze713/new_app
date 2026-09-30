@@ -64,7 +64,7 @@ def get_user():
 class FollowRequest(BaseModel):
     user_id: int
     series_id: int
-    current_book: int
+    current_book: float
 
 
 @app.post("/follow")
@@ -91,7 +91,7 @@ def get_follow_series():
 
 
 class UpdateProgressRequest(BaseModel):
-    current_book: int
+    current_book: float 
     notes: str
 
 
@@ -162,7 +162,7 @@ class FollowFromSearchRequest(BaseModel):
     hardcover_id: int
     name: str
     author: str
-    current_book: int
+    current_book: float
 
 
 class LoginRequest(BaseModel):
@@ -208,6 +208,7 @@ def my_series(user_id: int):
     result = []
     for link in links:
         series = db.query(Series).filter(Series.id == link.series_id).first()
+
         latest_book = (
             db.query(BookRelease)
             .filter(BookRelease.series_id == link.series_id)
@@ -215,18 +216,26 @@ def my_series(user_id: int):
             .first()
         )
 
+        first_cover = (
+            db.query(BookRelease)
+            .filter(BookRelease.series_id == link.series_id, BookRelease.cover_url.isnot(None))
+            .order_by(BookRelease.book_number)
+            .first()
+        )
+
         result.append({
             "link_id": link.id,
+            "series_id": series.id,
             "series_name": series.name,
             "author": series.author,
             "current_book": link.current_book,
             "notes": link.notes,
-            "latest_book_number": latest_book.book_number if latest_book else None,
+            "total_books": latest_book.book_number if latest_book else 0,
             "latest_book_title": latest_book.title if latest_book else None,
+            "cover_url": first_cover.cover_url if first_cover else None,
         })
 
     return result
-
 
 @app.post("/login")
 def login(request: LoginRequest):
@@ -240,3 +249,38 @@ def login(request: LoginRequest):
         db.refresh(user)
 
     return {"user_id": user.id, "email": user.email}
+
+
+
+
+class UpdateBookRequest(BaseModel):
+    current_book: float
+
+
+@app.put("/follow/{link_id}/book")
+def update_book(link_id: int, request: UpdateBookRequest):
+    db = SessionLocal()
+    link = db.query(UserSeries).filter(UserSeries.id == link_id).first()
+    link.current_book = request.current_book
+    db.commit()
+    return {"message": "Progress updated", "current_book": link.current_book}
+
+
+@app.get("/series/{series_id}/books")
+def series_books(series_id: int):
+    db = SessionLocal()
+    books = (
+        db.query(BookRelease)
+        .filter(BookRelease.series_id == series_id)
+        .order_by(BookRelease.book_number)
+        .all()
+    )
+
+    result = []
+    for book in books:
+        result.append({
+            "book_number": book.book_number,
+            "title": book.title,
+            "cover_url": book.cover_url,
+        })
+    return result

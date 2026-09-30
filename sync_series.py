@@ -3,8 +3,16 @@ from database import SessionLocal
 from hardcover_service import get_series_books
 
 
+
+def get_cover(entry):
+    image = entry["book"].get("image")
+    if image:
+        return image.get("url")
+    return None
+
+
 def clean_book_list(raw_books):
-    junk_words = ["Boxed", "Collection", "Trilogy", "Saga", "Box Set", "Series"]
+    junk_words = ["Boxed", "Collection", "Trilogy", "Saga", "Box Set", "Series", ", Part"]
     cleaned = []
 
     for entry in raw_books:
@@ -46,11 +54,13 @@ def save_series_to_db(series_name, author, cleaned_books, hardcover_id):
             series_id=new_series.id,
             book_number=entry["position"],
             title=entry["book"]["title"],
+            cover_url=get_cover(entry),
         )
         db.add(new_book)
 
     db.commit()
     print("Saved", len(cleaned_books), "books")
+    db.refresh(new_series)
     return new_series
 
 def refresh_series(series_id):
@@ -72,6 +82,7 @@ def refresh_series(series_id):
                 series_id=series_id,
                 book_number=entry["position"],
                 title=entry["book"]["title"],
+                cover_url=get_cover(entry),
             )
             db.add(new_book)
             added += 1
