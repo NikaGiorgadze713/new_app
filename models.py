@@ -1,6 +1,8 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Float
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy import Column, Integer, String, ForeignKey, Float, DateTime
+from datetime import datetime
 
 
 Base = declarative_base()
@@ -39,3 +41,12 @@ class UserSeries(Base):
     current_book = Column(Float)
     notes = Column(String)
     last_notified_book = Column(Integer, default=0)
+
+
+class Note(Base):
+    __tablename__ = "Note"
+    id = Column(Integer, primary_key=True)
+    link_id = Column(Integer, ForeignKey("UserSeries.id"))
+    book_number = Column(Float)
+    text = Column(String)
+    created_at = Column(DateTime, default=datetime.now)

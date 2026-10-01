@@ -8,12 +8,12 @@
   <style>
     :root {
       --bg: #F7F1E6; --card: #FFFBF4; --ink: #2B2420; --muted: #8A7B6A; --line: #EADFCC;
-      --accent: #7A2E2E; --accent-ink: #FFFBF4; --good-bg: #E8EFE3; --good: #3F6B3A;
+      --accent: #7A2E2E; --accent-ink: #FFFBF4; --good-bg: #E8EFE3; --good: #3F6B3A; --bad: #9B2C2C;
     }
     @media (prefers-color-scheme: dark) {
       :root {
         --bg: #1E1A17; --card: #2A2420; --ink: #EDE4D6; --muted: #9C8F7E; --line: #3A322C;
-        --accent: #D9A46A; --accent-ink: #1E1A17; --good-bg: #2F3A2A; --good: #A8C79A;
+        --accent: #D9A46A; --accent-ink: #1E1A17; --good-bg: #2F3A2A; --good: #A8C79A; --bad: #E39A9A;
       }
     }
     * { box-sizing: border-box; }
@@ -22,6 +22,7 @@
     h1 { font-family: "Lora", Georgia, serif; font-size: 26px; font-weight: 600; margin: 8px 0 18px; }
     .muted { color: var(--muted); font-size: 14px; }
     .card { background: var(--card); border-radius: 14px; padding: 12px; margin-bottom: 12px; display: flex; gap: 12px; align-items: center; box-shadow: 0 1px 3px rgba(60,40,20,.08); }
+    .card.block { display: block; }
     .clickable { cursor: pointer; }
     .cover { width: 52px; height: 76px; border-radius: 4px; object-fit: cover; background: var(--line); flex-shrink: 0; }
     .cover.small { width: 34px; height: 50px; }
@@ -30,11 +31,14 @@
     .bar > div { height: 100%; background: var(--accent); border-radius: 3px; }
     .badge { display: inline-block; font-size: 12px; padding: 3px 9px; border-radius: 10px; margin-top: 6px; background: var(--line); color: var(--muted); }
     .badge.good { background: var(--good-bg); color: var(--good); }
-    input, textarea { width: 100%; font: inherit; font-size: 16px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
-    textarea { min-height: 100px; resize: vertical; margin-top: 8px; }
+    input, textarea, select { width: 100%; font: inherit; font-size: 16px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
+    select { width: auto; max-width: 100%; padding: 8px 10px; }
+    textarea { min-height: 90px; resize: vertical; margin-top: 8px; }
     button { font: inherit; font-size: 15px; padding: 11px 16px; border: 0; border-radius: 10px; background: var(--accent); color: var(--accent-ink); cursor: pointer; white-space: nowrap; }
-    button:disabled { opacity: .6; }
+    button:disabled { opacity: .6; cursor: default; }
     button.ghost { background: transparent; color: var(--muted); padding: 8px 0; }
+    button.done { background: var(--good-bg); color: var(--good); }
+    button.danger { background: transparent; color: var(--bad); padding: 8px 0; margin-top: 28px; }
     .row { display: flex; gap: 8px; align-items: center; }
     .tabs { position: fixed; left: 0; right: 0; bottom: 0; display: flex; background: var(--card); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); }
     .tab { flex: 1; background: none; color: var(--muted); border-radius: 0; padding: 15px 0; font-size: 14px; }
@@ -47,8 +51,13 @@
     .book.read .name { color: var(--muted); }
     .book .mark { margin-left: auto; font-size: 13px; color: var(--muted); flex-shrink: 0; }
     .book.next .mark { color: var(--accent); font-weight: 600; }
-    .empty { text-align: center; padding: 40px 16px; color: var(--muted); }
+    .note { padding: 12px 2px; border-bottom: 1px solid var(--line); }
+    .note:last-child { border-bottom: 0; }
+    .note-text { white-space: pre-wrap; margin-top: 4px; line-height: 1.45; }
+    .group-title { margin: 16px 0 6px; }
+    .empty { text-align: center; padding: 30px 16px; color: var(--muted); }
     .msg { font-size: 14px; color: var(--good); }
+    .error { font-size: 14px; color: var(--bad); }
     .hidden { display: none !important; }
   </style>
 </head>
@@ -61,6 +70,7 @@
     <input id="email" type="email" placeholder="Your email" onkeydown="if (event.key === 'Enter') login()">
     <button onclick="login()">Start</button>
   </div>
+  <p id="login-msg" class="error"></p>
 </div>
 
 <div id="my" class="page hidden">
@@ -81,16 +91,27 @@
 <div id="detail" class="page hidden">
   <button class="ghost" onclick="show('my')">← My series</button>
   <div id="detail-head"></div>
+
   <div class="section">Books</div>
   <p class="muted" style="margin: 4px 0 8px;">Tap the last book you finished</p>
   <div id="detail-books" class="box"></div>
   <button class="ghost" onclick="markRead(0)">I haven't started yet</button>
+
   <div class="section">Notes</div>
-  <textarea id="detail-notes" placeholder="What happened, where you stopped, what to remember..."></textarea>
-  <div class="row" style="margin-top: 8px;">
-    <button onclick="saveNotes()">Save notes</button>
-    <span id="notes-msg" class="msg"></span>
+  <div class="card block" style="margin-top: 8px;">
+    <div class="row">
+      <span class="muted">About book</span>
+      <select id="note-book"></select>
+    </div>
+    <textarea id="note-text" placeholder="What happened, what to remember..."></textarea>
+    <div class="row" style="margin-top: 8px;">
+      <button onclick="addNote()">Add note</button>
+      <span id="note-msg" class="msg"></span>
+    </div>
   </div>
+  <div id="notes-list"></div>
+
+  <button class="danger" onclick="unfollow()">Stop following this series</button>
 </div>
 
 <nav id="tabs" class="tabs hidden">
@@ -101,6 +122,8 @@
 <script>
   let userId = localStorage.getItem("userId");
   let current = null;
+  let currentBooks = [];
+  let followedIds = new Set();
 
   function esc(text) {
     const div = document.createElement("div");
@@ -116,17 +139,14 @@
     return url ? `<img class="${cls}" src="${esc(url)}" loading="lazy" alt="">` : `<div class="${cls}"></div>`;
   }
 
-  async function getJson(url) {
-    const res = await fetch(url);
-    return res.json();
-  }
-
-  async function sendJson(method, url, body) {
-    const res = await fetch(url, {
-      method: method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
+  async function api(method, url, body) {
+    const options = { method: method, headers: {} };
+    if (body !== undefined) {
+      options.headers["Content-Type"] = "application/json";
+      options.body = JSON.stringify(body);
+    }
+    const res = await fetch(url, options);
+    if (!res.ok) throw new Error("Request failed: " + res.status);
     return res.json();
   }
 
@@ -143,23 +163,39 @@
 
   async function login() {
     const email = document.getElementById("email").value.trim();
+    const msg = document.getElementById("login-msg");
     if (!email) return;
-    const data = await sendJson("POST", "/login", { email: email });
-    userId = data.user_id;
-    localStorage.setItem("userId", userId);
-    show("my");
+    msg.textContent = "";
+    try {
+      const data = await api("POST", "/login", { email: email });
+      userId = data.user_id;
+      localStorage.setItem("userId", userId);
+      show("my");
+    } catch (e) {
+      msg.textContent = "Couldn't connect. Check your internet and try again.";
+    }
   }
 
   function logout() {
     localStorage.clear();
     userId = null;
+    followedIds = new Set();
     show("login");
   }
 
   async function loadMy() {
     const box = document.getElementById("my-list");
     box.innerHTML = "<p class='muted'>Loading...</p>";
-    const items = await getJson("/my-series/" + userId);
+
+    let items;
+    try {
+      items = await api("GET", "/my-series/" + userId);
+    } catch (e) {
+      box.innerHTML = `<div class="empty">Couldn't load your series.<br><br><button onclick="loadMy()">Try again</button></div>`;
+      return;
+    }
+
+    followedIds = new Set(items.map(s => s.hardcover_id));
 
     if (items.length === 0) {
       box.innerHTML = `<div class="empty">You're not following any series yet.<br><br><button onclick="show('search')">Find a series</button></div>`;
@@ -190,32 +226,27 @@
     }
   }
 
-  async function openSeries(s) {
-    current = s;
-    show("detail");
-    const read = n(s.current_book);
-    const total = n(s.total_books);
-
+  function renderHead() {
+    const read = n(current.current_book);
+    const total = n(current.total_books);
     document.getElementById("detail-head").innerHTML = `
       <div class="card">
-        ${coverHtml(s.cover_url)}
+        ${coverHtml(current.cover_url)}
         <div>
-          <div class="title" style="font-size: 20px;">${esc(s.series_name)}</div>
-          <div class="muted">${esc(s.author)}</div>
+          <div class="title" style="font-size: 20px;">${esc(current.series_name)}</div>
+          <div class="muted">${esc(current.author)}</div>
           <div class="muted" style="margin-top: 6px;">${read} of ${total} books read</div>
         </div>
       </div>
     `;
-    document.getElementById("detail-notes").value = s.notes || "";
-    document.getElementById("notes-msg").textContent = "";
+  }
 
+  function renderBooks() {
+    const read = n(current.current_book);
     const box = document.getElementById("detail-books");
-    box.innerHTML = "<p class='muted'>Loading books...</p>";
-    const books = await getJson("/series/" + s.series_id + "/books");
-
     box.innerHTML = "";
     let nextMarked = false;
-    for (const b of books) {
+    for (const b of currentBooks) {
       const num = n(b.book_number);
       const isRead = num <= read;
       const isNext = !isRead && !nextMarked;
@@ -234,17 +265,137 @@
     }
   }
 
-  async function markRead(bookNumber) {
-    await sendJson("PUT", "/follow/" + current.link_id + "/book", { current_book: bookNumber });
-    current.current_book = bookNumber;
-    openSeries(current);
+  async function openSeries(s) {
+    current = s;
+    show("detail");
+    renderHead();
+    document.getElementById("note-text").value = "";
+    document.getElementById("note-msg").textContent = "";
+    document.getElementById("notes-list").innerHTML = "";
+
+    const box = document.getElementById("detail-books");
+    box.innerHTML = "<p class='muted'>Loading books...</p>";
+    try {
+      currentBooks = await api("GET", "/series/" + s.series_id + "/books");
+    } catch (e) {
+      box.innerHTML = `<p class="error">Couldn't load books. <button class="ghost" onclick="openSeries(current)">Try again</button></p>`;
+      return;
+    }
+    renderBooks();
+
+    const read = n(s.current_book);
+    const select = document.getElementById("note-book");
+    select.innerHTML = "";
+    for (const b of currentBooks) {
+      const num = n(b.book_number);
+      const option = document.createElement("option");
+      option.value = num;
+      option.textContent = num + ". " + b.title;
+      select.appendChild(option);
+    }
+    const defaultBook = currentBooks.find(b => n(b.book_number) === read) || currentBooks.find(b => n(b.book_number) > read) || currentBooks[0];
+    if (defaultBook) select.value = n(defaultBook.book_number);
+
+    loadNotes();
   }
 
-  async function saveNotes() {
-    const notes = document.getElementById("detail-notes").value;
-    await sendJson("PUT", "/follow/" + current.link_id, { current_book: n(current.current_book), notes: notes });
-    current.notes = notes;
-    document.getElementById("notes-msg").textContent = "Saved";
+  async function markRead(bookNumber) {
+    if (n(current.current_book) === bookNumber) return;
+    try {
+      await api("PUT", "/follow/" + current.link_id + "/book", { current_book: bookNumber });
+      current.current_book = bookNumber;
+      renderHead();
+      renderBooks();
+    } catch (e) {
+      alert("Couldn't save your progress. Try again.");
+    }
+  }
+
+  async function unfollow() {
+    if (!confirm("Stop following " + current.series_name + "? Your notes for it will be deleted.")) return;
+    try {
+      await api("DELETE", "/follow/" + current.link_id);
+      followedIds.delete(current.hardcover_id);
+      show("my");
+    } catch (e) {
+      alert("Couldn't stop following. Try again.");
+    }
+  }
+
+  async function loadNotes() {
+    const box = document.getElementById("notes-list");
+    box.innerHTML = "";
+
+    let notes;
+    try {
+      notes = await api("GET", "/follow/" + current.link_id + "/notes");
+    } catch (e) {
+      box.innerHTML = `<p class="error">Couldn't load notes.</p>`;
+      return;
+    }
+
+    if (notes.length === 0) {
+      box.innerHTML = `<p class="muted">No notes yet. Write what happened, so future you remembers.</p>`;
+      return;
+    }
+
+    let group = null;
+    let lastBook = null;
+    for (const note of notes) {
+      const num = n(note.book_number);
+      if (num !== lastBook) {
+        const book = currentBooks.find(b => n(b.book_number) === num);
+        const heading = document.createElement("div");
+        heading.className = "muted group-title";
+        heading.textContent = "Book " + num + (book ? " · " + book.title : "");
+        box.appendChild(heading);
+
+        group = document.createElement("div");
+        group.className = "box";
+        box.appendChild(group);
+        lastBook = num;
+      }
+
+      const item = document.createElement("div");
+      item.className = "note";
+      item.innerHTML = `
+        <div class="row" style="justify-content: space-between;">
+          <span class="muted">${esc(note.created_at)}</span>
+          <button class="ghost" style="padding: 0;">Delete</button>
+        </div>
+        <div class="note-text">${esc(note.text)}</div>
+      `;
+      item.querySelector("button").onclick = () => deleteNote(note.id);
+      group.appendChild(item);
+    }
+  }
+
+  async function addNote() {
+    const text = document.getElementById("note-text").value.trim();
+    const bookNumber = Number(document.getElementById("note-book").value);
+    const msg = document.getElementById("note-msg");
+    if (!text) return;
+
+    try {
+      await api("POST", "/follow/" + current.link_id + "/notes", { book_number: bookNumber, text: text });
+      document.getElementById("note-text").value = "";
+      msg.className = "msg";
+      msg.textContent = "Saved";
+      loadNotes();
+    } catch (e) {
+      msg.className = "error";
+      msg.textContent = "Couldn't save. Try again.";
+    }
+  }
+
+  async function deleteNote(noteId) {
+    if (!confirm("Delete this note?")) return;
+    try {
+      await api("DELETE", "/notes/" + noteId);
+      loadNotes();
+    } catch (e) {
+      alert("Couldn't delete the note. Try again.");
+    }
   }
 
   async function search() {
@@ -253,7 +404,13 @@
     if (!name) return;
     box.innerHTML = "<p class='muted'>Searching...</p>";
 
-    const results = await getJson("/search?name=" + encodeURIComponent(name));
+    let results;
+    try {
+      results = await api("GET", "/search?name=" + encodeURIComponent(name));
+    } catch (e) {
+      box.innerHTML = `<div class="empty">Search didn't work.<br><br><button onclick="search()">Try again</button></div>`;
+      return;
+    }
     results.sort((a, b) => b.readers - a.readers);
 
     if (results.length === 0) {
@@ -273,7 +430,13 @@
         <button>Follow</button>
       `;
       const btn = card.querySelector("button");
-      btn.onclick = () => follow(r, btn);
+      if (followedIds.has(r.hardcover_id)) {
+        btn.textContent = "Following ✓";
+        btn.className = "done";
+        btn.disabled = true;
+      } else {
+        btn.onclick = () => follow(r, btn);
+      }
       box.appendChild(card);
     }
   }
@@ -281,14 +444,21 @@
   async function follow(r, btn) {
     btn.disabled = true;
     btn.textContent = "Adding...";
-    await sendJson("POST", "/follow/from-search", {
-      user_id: Number(userId),
-      hardcover_id: r.hardcover_id,
-      name: r.name,
-      author: r.author || "Unknown",
-      current_book: 0
-    });
-    btn.textContent = "Following ✓";
+    try {
+      await api("POST", "/follow/from-search", {
+        user_id: Number(userId),
+        hardcover_id: r.hardcover_id,
+        name: r.name,
+        author: r.author || "Unknown",
+        current_book: 0
+      });
+      followedIds.add(r.hardcover_id);
+      btn.textContent = "Following ✓";
+      btn.className = "done";
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = "Try again";
+    }
   }
 
   show(userId ? "my" : "login");

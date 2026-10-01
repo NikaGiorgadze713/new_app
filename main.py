@@ -11,6 +11,8 @@ from check_notifications import run_notification_check
 from fastapi.responses import FileResponse
 from models import BookRelease
 
+from models import Note
+
 
 class SeriesCreate(BaseModel):
 
@@ -233,6 +235,7 @@ def my_series(user_id: int):
             "total_books": latest_book.book_number if latest_book else 0,
             "latest_book_title": latest_book.title if latest_book else None,
             "cover_url": first_cover.cover_url if first_cover else None,
+            "hardcover_id": series.hardcover_id,
         })
 
     return result
@@ -284,3 +287,69 @@ def series_books(series_id: int):
             "cover_url": book.cover_url,
         })
     return result
+
+
+
+
+
+
+class NoteCreate(BaseModel):
+    book_number: float
+    text: str
+
+
+@app.get("/follow/{link_id}/notes")
+def get_notes(link_id: int):
+    db = SessionLocal()
+    notes = (
+        db.query(Note)
+        .filter(Note.link_id == link_id)
+        .order_by(Note.book_number, Note.created_at)
+        .all()
+    )
+
+    result = []
+    for note in notes:
+        result.append({
+            "id": note.id,
+            "book_number": note.book_number,
+            "text": note.text,
+            "created_at": note.created_at.strftime("%d %b %Y"),
+        })
+    return result
+
+
+@app.post("/follow/{link_id}/notes")
+def add_note(link_id: int, request: NoteCreate):
+    db = SessionLocal()
+    new_note = Note(link_id=link_id, book_number=request.book_number, text=request.text)
+    db.add(new_note)
+    db.commit()
+    db.refresh(new_note)
+    return {"message": "Note added", "id": new_note.id}
+
+
+@app.delete("/notes/{note_id}")
+def delete_note(note_id: int):
+    db = SessionLocal()
+    note = db.query(Note).filter(Note.id == note_id).first()
+    if note is None:
+        return {"message": "Note not found"}
+    db.delete(note)
+    db.commit()
+    return {"message": "Note deleted"}
+
+
+
+
+@app.delete("/follow/{link_id}")
+def unfollow(link_id: int):
+    db = SessionLocal()
+    link = db.query(UserSeries).filter(UserSeries.id == link_id).first()
+    if link is None:
+        return {"message": "Not following"}
+
+    db.query(Note).filter(Note.link_id == link_id).delete()
+    db.delete(link)
+    db.commit()
+    return {"message": "Unfollowed"}
